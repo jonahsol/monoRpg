@@ -29,7 +29,7 @@ namespace Rpg
 
         public EntityComponentSystem.EntityComponentStorage ecs;
         public EntityComponentSystem.Entity player;
-        
+        public EntityComponentSystem.Entity testEnemy;
 
         public RPGGame()
         {
@@ -54,7 +54,8 @@ namespace Rpg
             // init ecs
             this.ecs = new EntityComponentSystem.EntityComponentStorage();
             this.player = ecs.AddEntity();
-            
+            this.testEnemy = ecs.AddEntity();
+
             // enumerate through monogame components (not used). call <see cref="LoadContent()"/>
             base.Initialize();
         }
@@ -72,7 +73,25 @@ namespace Rpg
 
             // load tiled map data
             this.map = new TmxMap("Content/dungeon_test.tmx");
+
+            // add test enemy
+
+            ecs.AddComponentsToEntity(testEnemy.Eid,
+                                      new EntityComponentSystem.RenderComponent(ecs,
+                                                tilesetTxtr, new Rectangle(5 * 16, 9 * 16, 16, 16)),
+                                      new EntityComponentSystem.PositionComponent(ecs,
+                                                                             new Vector2(300, 300))
+                                     );
+
+            var testEnemyPos = ((EntityComponentSystem.PositionComponent)testEnemy.
+                            Components[ecs.ComponentCids[
+                            typeof(EntityComponentSystem.PositionComponent)]]).Position;
+
+            ecs.AddComponentsToEntity(testEnemy.Eid, new EntityComponentSystem.CollisionComponent(ecs,
+                                                            Vector2.Zero, new Vector2(16, 16)));
             
+            // add player
+
             ecs.AddComponentsToEntity(player.Eid,
                                       new EntityComponentSystem.RenderComponent(ecs, 
                                                 tilesetTxtr, new Rectangle(4 * 16, 8 * 16, 16, 16)),
@@ -98,6 +117,8 @@ namespace Rpg
                                                         2.5f
                                                                                )
                                       );
+            ecs.AddComponentsToEntity(player.Eid,
+                                      new EntityComponentSystem.CollisionComponent(ecs, Vector2.Zero, new Vector2(16,16)));
         }
 
         /// <summary>
@@ -124,6 +145,7 @@ namespace Rpg
             EntityComponentSystem.InputSystem.Update(ecs, _keyboardState);
             EntityComponentSystem.PositionSystem.Update(ecs, gameTime);
             EntityComponentSystem.CameraSystem.Update(ecs, gameTime);
+            
             base.Update(gameTime);
         }
 
@@ -134,8 +156,8 @@ namespace Rpg
         protected override void Draw(GameTime gameTime)
         {
             GraphicsDevice.Clear(Color.CornflowerBlue);
-
-            // draw background and run render system
+            
+            // draw game map and run render system
             spriteBatch.Begin(SpriteSortMode.Deferred, 
                               null, 
                               SamplerState.PointClamp, 
@@ -143,8 +165,11 @@ namespace Rpg
                               null, 
                               null, 
                               EntityComponentSystem.CameraSystem.CurTransformMatrix);
+            
+
             TiledMapReader.DrawMap(map, tilesetTxtr, spriteBatch);
             EntityComponentSystem.RenderSystem.Draw(ecs);
+            EntityComponentSystem.CollisionSystem.Update(this, ecs, gameTime);
             spriteBatch.End();
 
             base.Draw(gameTime);

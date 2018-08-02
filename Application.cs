@@ -17,7 +17,6 @@ namespace Rpg
             {
                 game.Run();
             }
-            
         }
     }
 }

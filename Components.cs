@@ -7,6 +7,7 @@ using Cid = System.UInt16;
 
 namespace Rpg
 {
+
     namespace EntityComponentSystem
     {
         /// <summary>
@@ -58,7 +59,7 @@ namespace Rpg
 
         /// <summary>
         /// Does not store data - indicates which entity or entities should be operated upon by
-        /// <see cref="InputSystem"/>
+        /// <see cref="InputSystem"/>.
         /// </summary>
         public class InputComponent : Component
         {
@@ -80,32 +81,38 @@ namespace Rpg
         }
 
         /// <summary>
-        /// For a given entity, RenderComponent stores sprite sheet and location of entity's sprite
-        /// in the sprite sheet.
+        /// For a given entity, RenderComponent stores sprite sheet image and location of entity's 
+        /// sprite in the sprite sheet.
         /// </summary>
         public class RenderComponent : Component
         {
             public Texture2D SpriteSheet { get; private set; }
-            public Rectangle Rect { get; private set; }
+            public Rectangle SpriteLocRect { get; private set; }
 
             public RenderComponent(EntityComponentStorage ecs, 
                                    Texture2D spriteSheet, 
-                                   Rectangle rect
+                                   Rectangle spriteLocRect
                                    ) : base(ecs)
             {
                 this.SpriteSheet = spriteSheet;
-                this.Rect = rect;
+                this.SpriteLocRect = spriteLocRect;
             }
         }
 
         /// <summary>
-        /// 
+        /// Stores location of an entity's collision bounding box.
         /// </summary>
         public class CollisionComponent : Component
         {
-            public CollisionComponent(EntityComponentStorage ecs) : base(ecs)
+            // top left corner of collision bounding box is sum of entity's position & ColBoxOffset
+            public Vector2 ColBoxOffset { get; set; }
+            // size of collision bounding box
+            public Vector2 ColBoxSize { get; set; }
+
+            public CollisionComponent(EntityComponentStorage ecs, Vector2 colBoxOffset, Vector2 colBoxSize) : base(ecs)
             {
-            
+                this.ColBoxOffset = colBoxOffset;
+                this.ColBoxSize = colBoxSize;
             }
         }
 
@@ -124,7 +131,7 @@ namespace Rpg
         }
 
         /// <summary>
-        /// Stores an entities velocity and movespeed.
+        /// Stores an entity's velocity and movespeed.
         /// </summary>
         public class MovementComponent : Component
         {

@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27130.2010
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Rpg", "Rpg.csproj", "{641AD981-FB1C-487C-9751-4C10E74DE578}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{641AD981-FB1C-487C-9751-4C10E74DE578}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{641AD981-FB1C-487C-9751-4C10E74DE578}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{641AD981-FB1C-487C-9751-4C10E74DE578}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{641AD981-FB1C-487C-9751-4C10E74DE578}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {35840A4D-86E4-4E69-B0F2-FB5264091EF1}
+	EndGlobalSection
+EndGlobal

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using System;
 using Eid = System.UInt16;
-using Cid = System.UInt16;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -15,7 +14,106 @@ namespace Rpg
         /// Systems summary - dependencies.
 
 
+        /// <summary>
+        /// Collision system handles all in game collisions.
+        /// 
+        /// TODO: Add events handling
+        /// </summary>
+        public static class CollisionSystem
+        {
+            public static void Update(Game game, EntityComponentStorage ecs, GameTime gameTime)
+            {
+                List<Eid> collisionCandidates = ecs.ComponentEids[
+                                                    ecs.ComponentCids[typeof(CollisionComponent)]];
 
+                for (int i = 0; i < collisionCandidates.Count; i++)
+                {
+                    for (int j = i + 1; j < collisionCandidates.Count; j++)
+                    {
+                        if (EntitiesCollide(game, ecs, ecs.Entities[collisionCandidates[i]],
+                                                       ecs.Entities[collisionCandidates[j]]))
+                        {
+                            System.Diagnostics.Debug.WriteLine("yay");
+                        }                
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Given two entities, return true if entities' collision boxes intersect.
+            /// 
+            /// Bounding box used in collisions is derived from collision & position components. 
+            /// Top left corner of bounding box is given by sum of 
+            /// <see cref="PositionComponent.Position"/> & 
+            /// <see cref="CollisionComponent.ColBoxOffset"/>
+            /// Size of bounding box is given by <see cref="CollisionComponent.ColBoxSize"/>
+            /// </summary>
+            private static bool EntitiesCollide(Game game, EntityComponentStorage ecs, Entity entity1, Entity entity2)
+            {
+                CollisionComponent col1 = ((CollisionComponent)entity1.Components[ecs.ComponentCids[typeof(CollisionComponent)]]);
+                CollisionComponent col2 = ((CollisionComponent)entity2.Components[ecs.ComponentCids[typeof(CollisionComponent)]]);
+                PositionComponent pos1 = ((PositionComponent)entity1.Components[ecs.ComponentCids[typeof(PositionComponent)]]);
+                PositionComponent pos2 = ((PositionComponent)entity2.Components[ecs.ComponentCids[typeof(PositionComponent)]]);
+
+                // need position and collision components
+                if (col1 != null && pos1 != null && col2 != null && pos2 != null)
+                {
+                    DrawTestRectangle(game, pos1, col1);
+                    DrawTestRectangle(game, pos2, col2);
+
+                    // Collision occurs -
+                    // (r1.x2 > r2.x1 && r1.x1 < r2.x2 && r1.y1 > r2.y2 && r1.y1 < r2.y2)
+                    return (((pos1.Position.X + col1.ColBoxOffset.X + col1.ColBoxSize.X) >= (pos2.Position.X + col2.ColBoxOffset.X)) &&
+                             ((pos1.Position.X + col1.ColBoxOffset.X) <= (pos2.Position.X + col2.ColBoxOffset.X + col2.ColBoxSize.X)) &&
+                             ((pos1.Position.Y + col1.ColBoxOffset.Y + col1.ColBoxSize.Y) >= (pos2.Position.Y + col2.ColBoxOffset.Y)) &&
+                             ((pos1.Position.Y + col1.ColBoxOffset.Y) <= (pos2.Position.Y + col2.ColBoxOffset.Y + col2.ColBoxSize.Y))
+                            );
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine("Sorry Sir! Null component reference " +
+                                                       "in collision system.");
+                    return false;
+                }
+            }
+            
+            // super not well done atm - find way to do better or something - need to be able to see hit boxes. MAYBE FIX BY NOT USING VECTORS IN DrawLine
+            private static void DrawTestRectangle(Game game, PositionComponent posComp, CollisionComponent colComp)
+            {
+                Vector2 _topLeft = posComp.Position + colComp.ColBoxOffset; 
+                Vector2 _topRight = posComp.Position + colComp.ColBoxOffset + new Vector2(colComp.ColBoxSize.X, 0);
+                Vector2 _botLeft = posComp.Position + colComp.ColBoxOffset + new Vector2(0, colComp.ColBoxSize.Y);
+                Vector2 _botRight = posComp.Position + colComp.ColBoxOffset + colComp.ColBoxSize;
+
+                DrawLine(game, _topLeft, _topRight);
+                DrawLine(game, _topLeft, _botLeft);
+                DrawLine(game, _topRight, _botRight);
+                DrawLine(game, _botLeft, _botRight);
+            }
+
+            private static void DrawLine(Game game, Vector2 start, Vector2 end)
+            {
+                Texture2D t = new Texture2D(game.GraphicsDevice, 1, 1);
+                t.SetData<Color>(new Color[] { Color.Red });
+
+                Vector2 edge = end - start;
+                float angle = (float)Math.Atan2(edge.Y, edge.X);
+
+                RPGGame.spriteBatch.Draw(t,
+                                        new Rectangle(// rectangle defines shape of line and position of start of line
+                                            (int)start.X,
+                                            (int)start.Y,
+                                            (int)edge.Length(), //sb will strech the texture to fill this rectangle
+                                            1), //width of line, change this to make thicker line
+                                        null,
+                                        Color.Red, //colour of line
+                                        angle,     //angle of line (calulated above)
+                                        new Vector2(0, 0), // point in line about which to rotate
+                                        SpriteEffects.None,
+                                        0);
+            }
+        }
+            
         /// <summary>
         /// Camera system updates and provides access to <see cref="CurTransformMatrix"/>.
         /// This is passed to Monogame call <see cref="SpriteBatch.Begin())"/>, manipulating game
@@ -28,8 +126,6 @@ namespace Rpg
 
             // Entity with camera component should have position and movement components also
             private static CameraComponent _cameraComponent;
-            private static PositionComponent _positionComponent;
-            private static MovementComponent _movementComponent;
 
             /// <summary>
             /// Returns transform matrix determined by <see cref="_cameraComponent"/> data. Current
@@ -59,7 +155,6 @@ namespace Rpg
                 }
             }
 
-
             // for now, camera follows entity with eid <see cref="CurCameraEid"/>
             public static void Update(EntityComponentStorage ecs, GameTime gameTime)
             {
@@ -67,30 +162,30 @@ namespace Rpg
                 {
                     _cameraComponent = (CameraComponent)(ecs.Entities[(int)CurCameraEid].
                                           Components[ecs.ComponentCids[typeof(CameraComponent)]]);
-                    _positionComponent = (PositionComponent)(ecs.Entities[(int)CurCameraEid].
+                    PositionComponent posComp = (PositionComponent)(ecs.Entities[(int)CurCameraEid].
                                           Components[ecs.ComponentCids[typeof(PositionComponent)]]);
-                    _movementComponent = (MovementComponent)(ecs.Entities[(int)CurCameraEid].
+                    MovementComponent moveComp = (MovementComponent)(ecs.Entities[(int)CurCameraEid].
                                           Components[ecs.ComponentCids[typeof(MovementComponent)]]);
 
-                    if ((_cameraComponent != null) && (_positionComponent != null))
+                    if (_cameraComponent != null && posComp != null)
                     {
-                        var moveFactor = _movementComponent.MoveSpeed *
+                        var moveFactor = moveComp.MoveSpeed *
                                                        (float)gameTime.ElapsedGameTime.TotalSeconds;
 
                         _cameraComponent.Position +=
-                        new Vector3((_positionComponent.Position.X - _cameraComponent.Position.X) *
+                        new Vector3((posComp.Position.X - _cameraComponent.Position.X) *
                                                                                        moveFactor.X,
-                                    (_positionComponent.Position.Y - _cameraComponent.Position.Y) *
+                                    (posComp.Position.Y - _cameraComponent.Position.Y) *
                                                                                        moveFactor.Y,
                                     0
                                    );
                     }
                     else
                     {
-                        System.Diagnostics.Debug.WriteLine("Sorry Sir! Null component reference");
+                        System.Diagnostics.Debug.WriteLine("Sorry Sir! Null component reference " +
+                                                           "in camera system.");
                     }
                 }
-                
             }
         }
         
@@ -103,19 +198,22 @@ namespace Rpg
         {
             public static void Update(EntityComponentStorage ecs, GameTime gameTime)
             {
+                PositionComponent posComp;
+                MovementComponent moveComp;
+
                 Vector2 oldPos;
                 Vector2 newPos;
                 
                 // for all entities with a position component
-                foreach (Eid posEid in ecs.componentEids[ecs.ComponentCids[typeof(PositionComponent)]])
+                foreach (Eid posEid in ecs.ComponentEids[ecs.ComponentCids[typeof(PositionComponent)]])
                 {
                     // position component of current entity changes according to that entities movement component
-                    PositionComponent posComp = 
+                    posComp = 
                         ((PositionComponent)ecs.Entities[posEid].Components[
                                                      ecs.ComponentCids[typeof(PositionComponent)]]);
 
                     // entity movement component stores velocity
-                    MovementComponent moveComp = 
+                    moveComp = 
                         ((MovementComponent)ecs.Entities[posEid].Components[
                                                      ecs.ComponentCids[typeof(MovementComponent)]]);
 
@@ -139,7 +237,6 @@ namespace Rpg
         /// </summary>
         public static class RenderSystem
         {
-
             public static void Draw(EntityComponentStorage ecs)
             { 
                 Component renderComponent;
@@ -149,7 +246,7 @@ namespace Rpg
                 Vector2 renderToPos = new Vector2(0, 0);
 
                 // render all entities with a position component
-                foreach (Eid renderEid in ecs.componentEids[ecs.ComponentCids[typeof(RenderComponent)]])
+                foreach (Eid renderEid in ecs.ComponentEids[ecs.ComponentCids[typeof(RenderComponent)]])
                 {
                     renderComponent = ecs.Entities[renderEid].Components[
                                                         ecs.ComponentCids[typeof(RenderComponent)]];
@@ -162,7 +259,7 @@ namespace Rpg
                         renderToPos = ((PositionComponent)positionComponent).Position;
 
                         renderSpriteSheet = ((RenderComponent)renderComponent).SpriteSheet;
-                        renderRect = ((RenderComponent)renderComponent).Rect;
+                        renderRect = ((RenderComponent)renderComponent).SpriteLocRect;
                         
                         RPGGame.spriteBatch.Draw(renderSpriteSheet, 
                                                  renderToPos, 
@@ -208,7 +305,7 @@ namespace Rpg
                 // grab first entity with input component.
                 // input component contains no data, just indicates which Entity should be acted
                 // upon by InputSystem
-                Eid inputEid = ecs.componentEids[
+                Eid inputEid = ecs.ComponentEids[
                                                 ecs.ComponentCids[typeof(InputComponent)]][0];
 
                 // this entity must have a movement component

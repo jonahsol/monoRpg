@@ -30,9 +30,10 @@ namespace Rpg
 
             // array of lists with each array index corresponding to a components Cid, and list at 
             // that element containing all Eid possessing an instance of that component
-            public List<Eid>[] componentEids;
+            public List<Eid>[] ComponentEids { get; set; }
             public static int NumComponents { get; set; } = 7;                                       /// TODO: some fancy reflection to automate this
             public int NumComponentsAdded { get; set; } = 0;
+            
 
             public Dictionary<Type, Cid> ComponentCids;
 
@@ -41,10 +42,10 @@ namespace Rpg
                 Entities = new List<Entity>();
                 _curNumEnt = 0;
 
-                componentEids = new List<Eid>[EntityComponentStorage.NumComponents];
+                ComponentEids = new List<Eid>[EntityComponentStorage.NumComponents];
                 for (int i = 0; i < EntityComponentStorage.NumComponents; i++)
                 {
-                    componentEids[i] = new List<Eid>();
+                    ComponentEids[i] = new List<Eid>();
                 }
 
                 ComponentCids = new Dictionary<Type, Eid>(); // possibly implement a weak table instead? possibly have this in EntCompStor instead? maybe more elegant to have simple static vars?
@@ -79,7 +80,7 @@ namespace Rpg
                 {
                     Entities[entityEid].
                             Components[this.ComponentCids[component.GetType()]] = component;
-                    this.componentEids[this.ComponentCids[component.GetType()]].Add(entityEid);
+                    this.ComponentEids[this.ComponentCids[component.GetType()]].Add(entityEid);
                 }
             }
         }

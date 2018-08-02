@@ -27,7 +27,8 @@ namespace Rpg
             int tileHeight = map.Tilesets[0].TileHeight;
 
             Vector2 mapTileLoc = new Vector2();
-            Vector2 origin = new Vector2();
+            // tiles rotate around their centre
+            Vector2 origin = new Vector2(tileWidth / 2, tileWidth / 2);
             float rotation = 0f;
 
             for (int iLayer = 0; iLayer < map.Layers.Count; iLayer++)
