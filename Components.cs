@@ -12,26 +12,9 @@ namespace Rpg
     {
         /// <summary>
         /// Base class for all components, <see cref="EntityComponentStorage"/> for more info.
-        /// 
-        /// Each component class is assigned a unique Cid, which is
-        /// stored in an EntityComponentStorage property, <see cref="ComponentCids"/>.
-        /// This assignment is performed in 'Component' constructor - all inheriting classes 
-        /// must call 'base()'.
         /// </summary>
         public abstract class Component
         {
-            protected Component(EntityComponentStorage ecs)
-            {
-                // assign a component to a unique Cid, if this has not already been done
-                if (!ecs.ComponentCids.ContainsKey(this.GetType()))
-                {
-                    ecs.ComponentCids.Add(this.GetType(), 
-                                          (Cid)(EntityComponentStorage.NumComponents - 
-                                          ecs.NumComponentsAdded - 1)
-                                         );
-                    ecs.NumComponentsAdded++;
-                }
-            }
         }
 
         /// <summary>
@@ -47,7 +30,7 @@ namespace Rpg
             public Vector3 Position { get; set; }
             
             public CameraComponent(EntityComponentStorage ecs, Eid curCameraEid,
-                                   Vector3 origin, Vector3 position, float scale) : base(ecs)
+                                   Vector3 origin, Vector3 position, float scale)
             {
                 this.Origin = origin / scale;  // since transform matrix multiplied by scale
                 this.Position = position;
@@ -63,20 +46,22 @@ namespace Rpg
         /// </summary>
         public class InputComponent : Component
         {
-            public InputComponent(EntityComponentStorage ecs) : base(ecs) {}
+            public InputComponent(EntityComponentStorage ecs) {}
         }
         
-
         /// <summary>
         /// Stores position of an entity.
         /// </summary>
         public class PositionComponent : Component
         {
             public Vector2 Position { get; set; }
+            // position of entity during previous frame
+            public Vector2 PrevPosition { get; set; }  
 
-            public PositionComponent(EntityComponentStorage ecs, Vector2 position) : base(ecs)
+            public PositionComponent(EntityComponentStorage ecs, Vector2 position)
             {
                 this.Position = position;
+                this.PrevPosition = position;
             }
         }
 
@@ -89,10 +74,8 @@ namespace Rpg
             public Texture2D SpriteSheet { get; private set; }
             public Rectangle SpriteLocRect { get; private set; }
 
-            public RenderComponent(EntityComponentStorage ecs, 
-                                   Texture2D spriteSheet, 
-                                   Rectangle spriteLocRect
-                                   ) : base(ecs)
+            public RenderComponent(EntityComponentStorage ecs, Texture2D spriteSheet,  
+                                                                        Rectangle spriteLocRect)
             {
                 this.SpriteSheet = spriteSheet;
                 this.SpriteLocRect = spriteLocRect;
@@ -100,7 +83,8 @@ namespace Rpg
         }
 
         /// <summary>
-        /// Stores location of an entity's collision bounding box.
+        /// Stores location of an entity's collision bounding box, as well as the event handler
+        /// for when that entity is involved in a collision.
         /// </summary>
         public class CollisionComponent : Component
         {
@@ -109,10 +93,44 @@ namespace Rpg
             // size of collision bounding box
             public Vector2 ColBoxSize { get; set; }
 
-            public CollisionComponent(EntityComponentStorage ecs, Vector2 colBoxOffset, Vector2 colBoxSize) : base(ecs)
+            // invoked when entity involved in a collision
+            public event EventHandler<CollisionEventArgs> CollisionHandler;
+
+            public CollisionComponent(EntityComponentStorage ecs, 
+                                      Vector2 colBoxOffset, 
+                                      Vector2 colBoxSize, 
+                                      params Action<object, CollisionEventArgs>[] collisionReactions
+                                     )
             {
                 this.ColBoxOffset = colBoxOffset;
                 this.ColBoxSize = colBoxSize;
+
+                AddCollisionReactions(collisionReactions);
+            }
+
+            /// <summary>
+            /// Invokes instance event handler <see cref="CollisionHandler">.
+            /// </summary>
+            /// <param name="e"></param>
+            public virtual void OnCollision(CollisionEventArgs e)
+            {
+
+                // q mark short circuits Invoke call when 'CollisionHandler' null
+                this.CollisionHandler?.Invoke(this, e);
+            }
+
+            /// <summary>
+            /// Add methods to instance event handler <see cref="CollisionHandler">.
+            /// </summary>
+            /// <param name="collisionReactions"></param>
+            public void AddCollisionReactions(Action<object, CollisionEventArgs>[] 
+                                                                                collisionReactions)
+            {
+                foreach (Action<object, CollisionEventArgs> collisionReaction in collisionReactions)
+                {
+                    // invoke w/o args creates partially applied function from collisionReaction
+                    this.CollisionHandler += collisionReaction.Invoke;
+                }
             }
         }
 
@@ -124,7 +142,7 @@ namespace Rpg
             int CurHealth { get; set; }
             int FullHealth { get; set; }
 
-            public HealthComponent(EntityComponentStorage ecs) : base(ecs)
+            public HealthComponent(EntityComponentStorage ecs)
             {
             
             }
@@ -138,9 +156,8 @@ namespace Rpg
             public Vector2 Velocity { get; set; }
             public Vector2 MoveSpeed { get; set; }
             
-            public MovementComponent(
-                   EntityComponentStorage ecs, Vector2 velocity, Vector2 moveSpeed) :
-                   base(ecs)
+            public MovementComponent(EntityComponentStorage ecs, Vector2 velocity, 
+                                                                                Vector2 moveSpeed)
             {
                 this.Velocity = velocity;
                 this.MoveSpeed = moveSpeed;

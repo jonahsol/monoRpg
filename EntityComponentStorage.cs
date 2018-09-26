@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System;
+using System.Reflection;
+using System.Linq;
 using Eid = System.UInt16;
 using Cid = System.UInt16;
 
@@ -11,9 +13,9 @@ namespace Rpg
         /// EntityComponentStorage stores a number of <see cref="Entity"/>. Each entity is assigned
         /// a unique id <see cref="Eid"/>, and has a list of <see cref="Component"/>. 
         /// 
-        /// Each component type has a unique id <see cref="Cid"/>. A component represents an entity 
-        /// possessing a particular aspect (ie. behaviour/functionality). Component instances also 
-        /// store data pertaining to that particular aspect.
+        /// A component represents an entity possessing a particular aspect 
+        /// (ie. behaviour/functionality). Component instances also store data pertaining to that 
+        /// particular aspect.
         /// 
         /// A system provides the logical implementation for a given aspect. Usually, a given system
         /// will act upon all entities that have a corresponding component. 
@@ -25,30 +27,29 @@ namespace Rpg
         {
             // a number of in game entities
             public List<Entity> Entities { get; set; }
-            // counter for adding entities
+            // Eid of a new entity assigned to current num. entities
             private int _curNumEnt;
-
-            // array of lists with each array index corresponding to a components Cid, and list at 
-            // that element containing all Eid possessing an instance of that component
-            public List<Eid>[] ComponentEids { get; set; }
-            public static int NumComponents { get; set; } = 7;                                       /// TODO: some fancy reflection to automate this
-            public int NumComponentsAdded { get; set; } = 0;
             
-
-            public Dictionary<Type, Cid> ComponentCids;
+            // dict creates reference from component types to a corresponding list, which stores
+            // all Eid possessing an instance of that component type
+            public Dictionary<Type, List<Eid>> ComponentEids { get; set; }
 
             public EntityComponentStorage()
             {
                 Entities = new List<Entity>();
                 _curNumEnt = 0;
 
-                ComponentEids = new List<Eid>[EntityComponentStorage.NumComponents];
-                for (int i = 0; i < EntityComponentStorage.NumComponents; i++)
+                ComponentEids = new Dictionary<Type, List<Eid>>();
+                // for each component type, create a list to track entities possessing that component
+                foreach (Type type in Assembly.GetAssembly(typeof(Component)).
+                                      GetTypes().Where(t => t.IsClass && 
+                                                       !t.IsAbstract && 
+                                                       t.IsSubclassOf(typeof(Component))
+                                                      )
+                        )
                 {
-                    ComponentEids[i] = new List<Eid>();
+                    ComponentEids.Add(type, new List<Eid>());
                 }
-
-                ComponentCids = new Dictionary<Type, Eid>(); // possibly implement a weak table instead? possibly have this in EntCompStor instead? maybe more elegant to have simple static vars?
             }
 
             /// <summary>
@@ -61,7 +62,7 @@ namespace Rpg
                 // create new Entity and add it to list of Entities
                 Entity newEntity = new Entity((Eid)_curNumEnt, null, components);
                 Entities.Insert(newEntity.Eid, newEntity);
-                _curNumEnt++;
+                _curNumEnt++;  // increment num ents., this will be the Eid of next entity
 
                 AddComponentsToEntity(newEntity.Eid, components);
 
@@ -78,9 +79,8 @@ namespace Rpg
             {
                 foreach (Component component in components)
                 {
-                    Entities[entityEid].
-                            Components[this.ComponentCids[component.GetType()]] = component;
-                    this.ComponentEids[this.ComponentCids[component.GetType()]].Add(entityEid);
+                    Entities[entityEid].Components[component.GetType()] = component;
+                    this.ComponentEids[component.GetType()].Add(entityEid);
                 }
             }
         }
@@ -94,20 +94,15 @@ namespace Rpg
         public struct Entity
         {
             public Eid Eid { get; set; }
-            public List<Component> Components { get; private set; }
+            public Dictionary<Type, Component> Components { get; private set; }
             public string name;
 
             public Entity(Eid Eid, string name, params Component[] components) : this()
             {
                 this.Eid = Eid;
                 this.name = name;
-
-                // initialise components list to contain all null elements
-                Components = new List<Component>();
-                for (int i = 0; i < EntityComponentStorage.NumComponents; i++)
-                {
-                    this.Components.Add(null);
-                }
+                
+                Components = new Dictionary<Type, Component>();
             }
 
         }
