@@ -49,10 +49,10 @@
 /processorParam:TextureFormat=Color
 /build:dungeon_test.png
 
-#begin MyFont.spritefont
+#begin basic_font.spritefont
 /importer:FontDescriptionImporter
 /processor:FontDescriptionProcessor
 /processorParam:PremultiplyAlpha=True
 /processorParam:TextureFormat=Compressed
-/build:MyFont.spritefont
+/build:basic_font.spritefont
 

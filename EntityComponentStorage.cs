@@ -3,7 +3,6 @@ using System;
 using System.Reflection;
 using System.Linq;
 using Eid = System.UInt16;
-using Cid = System.UInt16;
 
 namespace Rpg
 {

@@ -5,14 +5,15 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 
-
+/// <summary>
+/// Systems provide a variety of en
+/// </summary>
 
 namespace Rpg
 {
     namespace EntityComponentSystem
     {
         /// Systems summary - dependencies.
-
 
         /// <summary>
         /// Collision system handles all in game collisions. A collision invokes an entities
@@ -230,6 +231,11 @@ namespace Rpg
                 }
             }
 
+            public static Vector3 CameraPosition
+            {
+                get { return CameraSystem._cameraComponent.Position;  }
+            }
+
             // for now, camera follows entity with eid <see cref="CurCameraEid"/>
             public static void Update(EntityComponentStorage ecs, GameTime gameTime)
             {
@@ -237,6 +243,7 @@ namespace Rpg
                 {
                     _cameraComponent = (CameraComponent)(ecs.Entities[(int)CurCameraEid].
                                           Components[typeof(CameraComponent)]);
+
                     PositionComponent posComp = (PositionComponent)(ecs.Entities[(int)CurCameraEid].
                                           Components[typeof(PositionComponent)]);
                     MovementComponent moveComp = (MovementComponent)(ecs.Entities[(int)CurCameraEid].

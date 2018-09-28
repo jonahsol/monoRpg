@@ -12,11 +12,11 @@ using System.Collections.Generic;
 namespace Rpg
 {
     public class RPGGame : Game
-    {   
+    {
         // input
 
         public KeyboardState _keyboardState;
-        
+
         // graphics 
 
         public GraphicsDeviceManager graphics;
@@ -26,7 +26,9 @@ namespace Rpg
         public static SpriteBatch spriteBatch;
         public TmxMap map;
         public Texture2D tilesetTxtr;
+
         public SpriteFont spriteFont;
+        public static Texture2D UtilTexture { get; set; }
 
         // entity component system
 
@@ -70,6 +72,12 @@ namespace Rpg
         {
             // spritebatch used to draw textures
             spriteBatch = new SpriteBatch(GraphicsDevice);
+
+            // 1x1 px blank utility texture
+            UtilTexture = new Texture2D(GraphicsDevice, 1, 1);
+            UtilTexture.SetData<Color>(new Color[] { Color.White });
+
+            spriteFont = Content.Load<SpriteFont>("basic_font"); 
 
             // load sprite sheet currently in use
             tilesetTxtr = Content.Load<Texture2D>("dungeon_test");
@@ -171,20 +179,16 @@ namespace Rpg
                               null, 
                               null, 
                               EntityComponentSystem.CameraSystem.CurTransformMatrix);
-
-            
-
-            if (spriteFont != null)
-            {
-                float fps = 1 / (float)gameTime.ElapsedGameTime.TotalSeconds;
-                spriteBatch.DrawString(spriteFont, String.Format("{0}", fps), new Vector2(10, 10), Color.Black);
-            }
             
             TiledMapReader.DrawMap(map, tilesetTxtr, spriteBatch);
             EntityComponentSystem.RenderSystem.Draw(ecs);
-            
-            spriteBatch.End();
 
+            DevUtils.DrawCollisionBoxes(ecs);
+            var cameraPos = EntityComponentSystem.CameraSystem.CameraPosition;
+            DevUtils.DrawFpsCounter(
+                new Vector2(cameraPos.X - 200, cameraPos.Y - 200), spriteFont, gameTime);
+
+            spriteBatch.End();
             base.Draw(gameTime);
         }
     }
