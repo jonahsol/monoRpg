@@ -3,7 +3,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
 using Eid = System.UInt16;
-using Rpg.EntityComponentSystem;
+using EntityComponentSystem;
 
 namespace Rpg
 {

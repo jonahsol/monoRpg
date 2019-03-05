@@ -28,7 +28,9 @@ namespace Rpg
         public Texture2D tilesetTxtr;
 
         public SpriteFont spriteFont;
-        public static Texture2D UtilTexture { get; set; }
+        public static Vector2 SpriteDimensions { get; private set; }
+        public static Vector2 SpriteOriginOfRotation { get; private set; }
+        public static Texture2D UtilTexture { get; set; } // 1px square for general use
 
         // entity component system
 
@@ -61,12 +63,14 @@ namespace Rpg
             this.player = ecs.AddEntity();
             this.testEnemy = ecs.AddEntity();
 
+            // append map entities ecs.Entities//EntityComponentSystem.AddMap(ecs);
+
             // enumerate through monogame components (not used). call <see cref="LoadContent()"/>
             base.Initialize();
         }
 
         /// <summary>
-        /// Load initial game content
+        /// Load initial game content.
         /// </summary>
         protected override void LoadContent()
         {
@@ -79,11 +83,15 @@ namespace Rpg
 
             spriteFont = Content.Load<SpriteFont>("basic_font"); 
 
-            // load sprite sheet currently in use
-            tilesetTxtr = Content.Load<Texture2D>("dungeon_test");
+            tilesetTxtr = Content.Load<Texture2D>("dungeon_test");  // sprite sheet
+            SpriteDimensions = new Vector2(16, 16);
+            SpriteOriginOfRotation = new Vector2(SpriteDimensions.X / 2, SpriteDimensions.Y / 2);
 
             // load tiled map data
             this.map = new TmxMap("Content/dungeon_test.tmx");
+
+            // create map entities
+            TiledMapReader.AddTiledMapEntities(ecs, map, tilesetTxtr);
 
             // add test enemy
 
@@ -105,7 +113,7 @@ namespace Rpg
             ecs.AddComponentsToEntity(player.Eid,
                                       new EntityComponentSystem.RenderComponent(ecs, 
                                                 tilesetTxtr, new Rectangle(4 * 16, 8 * 16, 16, 16)),
-                                      new EntityComponentSystem.PositionComponent(ecs, 
+                                      new EntityComponentSystem.PositionComponent(ecs,
                                                                              new Vector2(200, 200)),
                                       new EntityComponentSystem.MovementComponent(ecs,
                                                                              new Vector2(0, 0),
@@ -116,6 +124,7 @@ namespace Rpg
             var playerPos = ((EntityComponentSystem.PositionComponent)player.
                             Components[typeof(EntityComponentSystem.PositionComponent)]).Position;
 
+            // camera follows player
             ecs.AddComponentsToEntity(player.Eid, 
                                       new EntityComponentSystem.CameraComponent(
                                                         ecs, 
@@ -128,10 +137,11 @@ namespace Rpg
                                       );
             
             ecs.AddComponentsToEntity(player.Eid, new EntityComponentSystem.CollisionComponent(ecs, 
-                                                            Vector2.Zero, 
-                                                            new Vector2(16, 16),
+                                                            new Vector2(4, 0), 
+                                                            new Vector2(9, 16),
                                     EntityComponentSystem.CollisionReactionSystem.ReturnsPositions)
                                      );
+
         }
 
         /// <summary>
@@ -158,7 +168,7 @@ namespace Rpg
             EntityComponentSystem.InputSystem.Update(ecs, _keyboardState);
             EntityComponentSystem.PositionSystem.Update(ecs, gameTime);
             EntityComponentSystem.CameraSystem.Update(ecs, gameTime);
-            EntityComponentSystem.CollisionSystem.Update(ecs, gameTime);
+            //EntityComponentSystem.CollisionSystem.Update(ecs, gameTime);
 
             base.Update(gameTime);
         }
@@ -180,13 +190,14 @@ namespace Rpg
                               null, 
                               EntityComponentSystem.CameraSystem.CurTransformMatrix);
             
-            TiledMapReader.DrawMap(map, tilesetTxtr, spriteBatch);
+            //TiledMapReader.DrawMap(map, tilesetTxtr, spriteBatch);
             EntityComponentSystem.RenderSystem.Draw(ecs);
 
             DevUtils.DrawCollisionBoxes(ecs);
             var cameraPos = EntityComponentSystem.CameraSystem.CameraPosition;
-            DevUtils.DrawFpsCounter(
-                new Vector2(cameraPos.X - 200, cameraPos.Y - 200), spriteFont, gameTime);
+            DevUtils.DrawFpsCounter(new Vector2(cameraPos.X - 200, cameraPos.Y - 200), 
+                                    spriteFont, 
+                                    gameTime);
 
             spriteBatch.End();
             base.Draw(gameTime);
